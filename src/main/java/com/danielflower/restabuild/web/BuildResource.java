@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Path("api/v1/builds")
@@ -42,12 +43,16 @@ public class BuildResource {
     private final BuildDatabase database;
     private final BuildQueue buildQueue;
     private final ExecutorService executorService;
+    private final Pattern allowedUrlPattern;
+    private final String urlPatternValidationErrorMessage;
 
-    public BuildResource(FileSandbox fileSandbox, BuildDatabase database, BuildQueue buildQueue, ExecutorService executorService) {
+    public BuildResource(FileSandbox fileSandbox, BuildDatabase database, BuildQueue buildQueue, ExecutorService executorService, Pattern allowedUrlPattern, String urlPatternValidationErrorMessage) {
         this.fileSandbox = fileSandbox;
         this.buildQueue = buildQueue;
         this.database = database;
         this.executorService = executorService;
+        this.allowedUrlPattern = allowedUrlPattern;
+        this.urlPatternValidationErrorMessage = urlPatternValidationErrorMessage;
     }
 
     @POST
@@ -103,6 +108,10 @@ public class BuildResource {
             gitURIish = new URIish(gitUrl);
         } catch (URISyntaxException e) {
             throw new BadRequestException("An invalid Git URL was specified: " + e.getMessage());
+        }
+        if (!allowedUrlPattern.matcher(gitUrl).matches()) {
+            System.out.println("gitUrl = " + gitUrl);
+            throw new BadRequestException(urlPatternValidationErrorMessage);
         }
         return gitURIish;
     }

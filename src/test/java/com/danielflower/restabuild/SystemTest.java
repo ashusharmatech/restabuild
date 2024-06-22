@@ -31,7 +31,8 @@ public class SystemTest {
 
     @BeforeClass
     public static void start() throws Exception {
-        config = Config.load(new String[]{"sample-config.properties"});
+        config = Config.load(new String[]{"sample-config.properties"})
+            .clone("restabuild.git.url.pattern", "file:/.*");
         app = new App(config);
         app.start();
     }
@@ -68,6 +69,17 @@ public class SystemTest {
         assertThat(afterBuild.getString("commitIDBeforeBuild"),
             equalTo(afterBuild.getString("commitIDAfterBuild")));
         assertThat(afterBuild.getJSONArray("tagsCreated").get(0), is("my-maven-app-1.0.0"));
+    }
+
+    @Test
+    public void ifTheGitUrlDoesNotMatchThePatternYouGetA400() throws Exception {
+        Fields fields = new Fields();
+        // this test class changes the sample-config.properties file to be file:/ URLs only, so not quite testing the sample-config properties value here
+        fields.add("gitUrl", "ssh://github.com/blah.git");
+        ContentResponse resp = client.FORM(buildsUrl(), fields);
+        assertThat(resp.getStatus(), equalTo(400));
+        // the message is set in sample-config.properties
+        assertThat(resp.getContentAsString(), containsString("Only HTTPS github.com URLs are allowed"));
     }
 
     private JSONObject waitForBuildToFinish(JSONObject build, BuildStatus expectedStatus) throws InterruptedException, ExecutionException, TimeoutException {

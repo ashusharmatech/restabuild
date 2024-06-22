@@ -1,5 +1,6 @@
 package com.danielflower.restabuild.web;
 
+import com.danielflower.restabuild.Config;
 import io.muserver.Method;
 import io.muserver.MuServer;
 import io.muserver.Mutils;
@@ -25,7 +26,7 @@ public class WebServer implements AutoCloseable {
         this.server = server;
     }
 
-    public static WebServer start(int port, String context, BuildResource buildResource, int buildTimeoutMinutes) throws IOException {
+    public static WebServer start(int port, String context, BuildResource buildResource, int buildTimeoutMinutes, Config config) throws IOException {
         boolean hasContext = !Mutils.nullOrEmpty(context);
         MuServer server = muServer()
             .withHttpPort(port)
@@ -55,7 +56,7 @@ public class WebServer implements AutoCloseable {
                                 .build())
                         )
                     )
-                    .addHandler(Method.GET, "/", new IndexHtmlHandler())
+                    .addHandler(Method.GET, "/", new IndexHtmlHandler(config))
                     .addHandler(fileOrClasspath("src/main/resources/web", "/web")))
             .start();
 

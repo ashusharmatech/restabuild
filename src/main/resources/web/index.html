@@ -49,8 +49,7 @@
 <form id="createForm" action="api/v1/builds" method="post">
     <label>
         Git URL:
-        <input type="text" id="gitUrlBox" name="gitUrl" required
-               placeholder="https://github.com/3redronin/mu-server-sample.git">
+        <input type="text" id="gitUrlBox" name="gitUrl" required {{gitUrlTextBoxAttributes}}>
     </label>
     <label>
         Git Branch:

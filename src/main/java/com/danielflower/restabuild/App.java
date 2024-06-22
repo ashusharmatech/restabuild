@@ -48,9 +48,9 @@ public class App {
 
         buildQueue = new BuildQueue(numberOfConcurrentBuilds, buildTimeoutMinutes, config.deletePolicy());
 
-        BuildResource buildResource = new BuildResource(fileSandbox, database, buildQueue, executorService);
+        BuildResource buildResource = new BuildResource(fileSandbox, database, buildQueue, executorService, config.allowedRepoUrlPattern(), config.allowedRepoUrlValidationMessage());
         String context = Mutils.trim(config.get(Config.CONTEXT, "restabuild"), "/");
-        webServer = WebServer.start(appRunnerPort, context, buildResource, buildTimeoutMinutes);
+        webServer = WebServer.start(appRunnerPort, context, buildResource, buildTimeoutMinutes, config);
     }
 
     private void deleteOldTempFiles(File tempDir) {

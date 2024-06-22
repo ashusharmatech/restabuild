@@ -1,8 +1,8 @@
 package com.danielflower.restabuild;
 
 import com.danielflower.restabuild.build.DeletePolicy;
-import com.danielflower.restabuild.build.RestaBuildException;
 import com.danielflower.restabuild.build.InvalidConfigException;
+import com.danielflower.restabuild.build.RestaBuildException;
 import org.apache.commons.io.FileUtils;
 
 import java.io.File;
@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -90,6 +91,19 @@ public class Config {
         }
     }
 
+    public Pattern allowedRepoUrlPattern() {
+        String exp = get("restabuild.git.url.pattern", ".*");
+        return Pattern.compile(exp);
+    }
+
+    public String allowedRepoUrlValidationMessage() {
+        return get("restabuild.git.url.validation.message", "Sorry, that URL is not allowed.");
+    }
+
+    public String exampleURl() {
+        return get("restabuild.example.url", "");
+    }
+
 
     public File getOrCreateDir(String name) {
         File f = new File(get(name));
@@ -103,6 +117,12 @@ public class Config {
 
     public static boolean isWindows() {
         return File.separatorChar == '\\';
+    }
+
+    public Config clone(String keyToChange, String valueForKey) {
+        Map<String, String> copy = new HashMap<>(raw);
+        copy.put(keyToChange, valueForKey);
+        return new Config(copy);
     }
 
 }
