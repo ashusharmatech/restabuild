@@ -46,6 +46,7 @@ public class BuildProcess {
     private File workDir;
     private volatile Process process;
     private final DeletePolicy instanceDirDeletePolicy;
+    private File buildScriptFile;
 
     public File workDir() {
         return workDir;
@@ -53,6 +54,10 @@ public class BuildProcess {
 
     public ObjectId commitIDBeforeBuild() {
         return commitIDBeforeBuild;
+    }
+
+    public File buildScriptFile() {
+        return buildScriptFile;
     }
 
     public ObjectId commitIDAfterBuild() {
@@ -142,19 +147,19 @@ public class BuildProcess {
                         commitIDBeforeBuild = headBefore.getObjectId();
                         tagsBefore = RemoteGitRepo.getTagsAt(git, commitIDBeforeBuild);
 
-                        File f = new File(workDir, BuildResult.buildFile);
-                        if (!f.isFile()) {
+                        buildScriptFile = new File(workDir, BuildResult.buildFile);
+                        if (!buildScriptFile.isFile()) {
                             logWriter.write("Please place a file called " + BuildResult.buildFile + " in the root of your repo");
                             changeStatus(BuildStatus.FAILURE, git);
                         } else {
 
                             List<String> commands = new ArrayList<>();
                             if (Config.isWindows()) {
-                                commands.add(f.getCanonicalPath());
+                                commands.add(buildScriptFile.getCanonicalPath());
                             } else {
                                 commands.add("bash");
                                 commands.add("-x");
-                                commands.add(f.getName());
+                                commands.add(buildScriptFile.getName());
                             }
                             if (buildParam != null) {
                                 // TODO: add support for quoted parameter values
@@ -209,10 +214,10 @@ public class BuildProcess {
                             } else {
                                 if (!buildCancelled()) {
                                     if (process.exitValue() == 0) {
-                                        doubleLog(logWriter, "Completed " + f.getName() + " in " + (System.currentTimeMillis() - buildStartMillis) + "ms");
+                                        doubleLog(logWriter, "Completed " + buildScriptFile.getName() + " in " + (System.currentTimeMillis() - buildStartMillis) + "ms");
                                         changeStatus(BuildStatus.SUCCESS, git);
                                     } else {
-                                        String message = "Exit code " + process.exitValue() + " returned from " + f.getName();
+                                        String message = "Exit code " + process.exitValue() + " returned from " + buildScriptFile.getName();
                                         doubleLog(logWriter, message);
                                         changeStatus(BuildStatus.FAILURE, git);
                                     }

@@ -14,13 +14,16 @@ import io.muserver.rest.Description;
 import io.muserver.rest.ResponseHeader;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.*;
+import org.apache.commons.io.FileUtils;
 import org.eclipse.jgit.transport.URIish;
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -191,7 +194,9 @@ public class BuildResource {
     private static JSONObject jsonForResult(UriBuilder resourcePath, BuildResult result) {
         JSONObject json = result.toJson()
             .put("url", resourcePath.replaceQuery(null).build())
-            .put("logUrl", resourcePath.clone().path("log").replaceQuery(null).build());
+            .put("logUrl", resourcePath.clone().path("log").replaceQuery(null).build())
+            .put("buildScriptUrl", resourcePath.clone().path("buildScript").replaceQuery(null).build());
+
         if (result.isCancellable()) {
             json.put("cancelUrl", resourcePath.clone().path("cancel").replaceQuery(null).build());
         }
@@ -232,7 +237,7 @@ public class BuildResource {
                 });
                 while (!result.hasFinished()) {
                     try {
-                        Thread.sleep(500);
+                        Thread.sleep(200);
                     } catch (InterruptedException e) {
                         break;
                     }
@@ -242,4 +247,33 @@ public class BuildResource {
             throw new NotFoundException();
         }
     }
+
+    @GET
+    @Path("{id}/buildScript")
+    @Produces("application/json")
+    @Description("Gets the file name and contents of the build script used to run a build")
+    public Response getBuildScript(@PathParam("id") @Description("The generated build ID which is returned when a new build is posted")
+                                       String id) throws IOException {
+        Optional<BuildResult> br = database.get(id);
+        if (!br.isPresent()) {
+            throw new NotFoundException("No build with that ID found");
+        }
+        File file = br.get().buildScriptFile();
+        JSONObject resp = new JSONObject();
+        boolean available;
+        if (file == null || !file.isFile()) {
+            available = false;
+        } else {
+            available = true;
+            resp.put("contents", FileUtils.readFileToString(file, StandardCharsets.UTF_8));
+        }
+        resp.put("available", available);
+        if (file != null) {
+            resp.put("filename", file.getName());
+        }
+        return Response.ok()
+            .entity(resp.toString(4))
+            .build();
+    }
+
 }

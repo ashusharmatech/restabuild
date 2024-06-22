@@ -15,6 +15,9 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -39,6 +42,7 @@ public class BuildResult {
     private long buildComplete = -1;
     private String commitIDBeforeBuild;
     private String commitIDAfterBuild;
+    private volatile File buildScriptFile;
     private List<String> createdTags;
     private final String buildParam;
     private final ExecutorService executorService;
@@ -62,6 +66,10 @@ public class BuildResult {
         synchronized (lock) {
             return status.endState();
         }
+    }
+
+    public File buildScriptFile() {
+        return buildScriptFile;
     }
 
     public boolean isCancellable() {
@@ -129,9 +137,16 @@ public class BuildResult {
                     status = newStatus;
                     commitIDBeforeBuild = commitName(buildProcess.commitIDBeforeBuild());
                     commitIDAfterBuild = commitName(buildProcess.commitIDAfterBuild());
+                    buildScriptFile = buildProcess.buildScriptFile();
                     if (newStatus.endState()) {
                         createdTags = buildProcess.createdTags();
                         FileUtils.write(new File(buildDir, "build.json"), toJson().toString(4), StandardCharsets.UTF_8);
+                        File buildScript = this.buildScriptFile;
+                        if (buildScript != null) {
+                            File target = new File(buildDir, buildScript.getName());
+                            Path newPath = Files.copy(buildScript.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                            buildScriptFile = newPath.toFile();
+                        }
                         buildLog.setLength(0);
                         this.buildProcess = null;
                     }

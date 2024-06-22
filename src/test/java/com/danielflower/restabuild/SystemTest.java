@@ -199,6 +199,24 @@ public class SystemTest {
         ));
     }
 
+
+    @Test
+    public void theBuildScriptIsDownloadable() throws Exception {
+        AppRepo appRepo = AppRepo.create("env-vars");
+        JSONObject build = new JSONObject(createBuild(appRepo).getContentAsString());
+        String scriptUrl = build.getString("buildScriptUrl");
+
+        // this just causes the test to wait until the build is complete
+        client.GET(build.getString("logUrl")).getContentAsString();
+
+        JSONObject scriptInfo = new JSONObject(client.GET(scriptUrl).getContentAsString());
+
+        assertThat(scriptInfo.getBoolean("available"), equalTo(true));
+        assertThat(scriptInfo.getString("filename"), equalTo(Config.isWindows() ? "build.bat" : "build.sh"));
+        assertThat(scriptInfo.getString("contents"), containsString("Build Log URL:"));
+    }
+
+
     @Test
     public void canCancelBuilds() throws Exception {
         AppRepo appRepo = AppRepo.create("hung-build");
